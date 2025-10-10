@@ -11,4 +11,4 @@ Run the application:
 cd \backend
 dotnet run
 ```
-Site will be available on http://localhost:5009
+Site will be available on http://http://localhost:5253/api

@@ -1,44 +1,32 @@
-# Build & publish outputs
-bin/
-obj/
-out/
-
-# User-specific files
+# Visual Studio
+.vs/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
 
-# Visual Studio
-.vs/
-*.vsp
-*.vspscc
+# Build
+bin/
+obj/
+out/
 
 # Rider
 .idea/
-
-# VS Code
-.vscode/
-
-# NuGet
-*.nupkg
-packages/
-.nuget/
-
-# Logs
-*.log
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Dotnet tool settings
-*.dotnet-tools.json
+# ASP.NET Core
+appsettings.*.json
+*.db
 
-# Publish directory
-publish/
+# NuGet
+*.nupkg
+.nuget/
 
-# Optional: coverage files
-coverage/
-*.coverage
-*.coveragexml
+# Logs
+*.log
+
+# Others
+.vscode/
