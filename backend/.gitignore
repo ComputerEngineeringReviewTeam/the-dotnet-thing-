@@ -1,0 +1,44 @@
+# Build & publish outputs
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+*.vsp
+*.vspscc
+
+# Rider
+.idea/
+
+# VS Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+.nuget/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dotnet tool settings
+*.dotnet-tools.json
+
+# Publish directory
+publish/
+
+# Optional: coverage files
+coverage/
+*.coverage
+*.coveragexml
