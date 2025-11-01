@@ -10,11 +10,15 @@ The Dotnet Thingy...
 
 ### Build and run the application:  
 ```bash
-docker build -t backend backend/
+
 docker build -t rabbitmq-mqtt rabbitMQ/
-docker network create mqtt-net
-docker run -d --name rabbitmq-mqtt --network mqtt-net -p 5672:5672 -p 15672:15672 -p 1883:1883 rabbitmq-mqtt
-docker run -d  -p 8080:8080 --name backend --network mqtt-net backend
+docker build -t mongo-db mongoDB/
+docker build -t backend backend/
+docker network create backend-net
+
+docker run -d --name rabbitmq-mqtt --network backend-net -p 5672:5672 -p 15672:15672 -p 1883:1883 rabbitmq-mqtt
+docker run -d --name mongodb -p 27017:27017 --network backend-net -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=secret mongo:latest
+docker run -d  -p 8080:8080 --name backend --network backend-net backend
 ```
 
 ### Check if setup works correctly:  

@@ -1,9 +1,12 @@
+using Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMqSettings"));
 
 // Add MQTT background service
 builder.Services.AddHostedService<MqttService>();
