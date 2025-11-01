@@ -6,21 +6,19 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client;
+using Settings;
 
 
 namespace Services
 {
-    public class RabbitMqSettings
-    {
-        public string HostName { get; set; } = null!;
-        public string QueueName { get; set; } = null!;
-    }
 
     public class MqttService : BackgroundService
     {
         private readonly RabbitMqSettings _rabbitSettings;
         private IMqttClient? _client;
         private MqttClientOptions? _options;
+
+        private MongoDbService mognoDbService;
         internal static string logPrefix = "[MQTT]";
 
         internal void logMessage(string msg)
@@ -28,11 +26,12 @@ namespace Services
             Console.WriteLine($"{logPrefix} {msg}");
         }
 
-        public MqttService(IOptions<RabbitMqSettings> options)
+        public MqttService(IOptions<RabbitMqSettings> options, MongoDbService service)
         {
             _rabbitSettings = options.Value;
             logMessage("HostName: " + _rabbitSettings.HostName);
             logMessage("QueueName: " + _rabbitSettings.QueueName);
+            mognoDbService = service;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -1,18 +1,44 @@
 using MongoDB.Driver;
 using Models;
+using Settings;
+using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 
 
 namespace Services
 {
-    public class WaterMeasurementService
+    public class MongoDbService
     {
+        private MongoDbSettings _mongoDbSettings;
         private readonly IMongoCollection<WaterMeasurement> _collection;
 
-        public WaterMeasurementService(string connectionString, string dbName, string collectionName = "WaterMeasurements")
+        internal static string logPrefix = "[MongoDb]";
+
+        internal void logMessage(string msg)
         {
-            var client = new MongoClient(connectionString);
-            var database = client.GetDatabase(dbName);
-            _collection = database.GetCollection<WaterMeasurement>(collectionName);
+            Console.WriteLine($"{logPrefix} {msg}");
+        }
+
+        public MongoDbService(IOptions<MongoDbSettings> options)
+        {
+            _mongoDbSettings = options.Value;
+            var client = new MongoClient(_mongoDbSettings.ConnectionString);
+            var database = client.GetDatabase(_mongoDbSettings.DatabaseName);
+            _collection = database.GetCollection<WaterMeasurement>(_mongoDbSettings.CollectionName);
+
+            try
+            {
+                database.RunCommandAsync((Command<BsonDocument>)"{ping:1}");
+                logMessage("MongoDB connection successful!");
+            }
+            catch (Exception ex)
+            {
+                logMessage("MongoDB connection failed: " + ex.Message);
+            }
+
+            logMessage("Connection: " + _mongoDbSettings.ConnectionString);
+            logMessage("Db name: " + _mongoDbSettings.DatabaseName);
+            logMessage("Collection: " + _mongoDbSettings.CollectionName);
         }
 
         public async Task<List<WaterMeasurement>> GetAllAsync()

@@ -10,10 +10,10 @@ The Dotnet Thingy...
 
 ### Build and run the application:  
 ```bash
-
 docker build -t rabbitmq-mqtt rabbitMQ/
-docker build -t mongo-db mongoDB/
+docker build -t mongodb mongoDB/
 docker build -t backend backend/
+
 docker network create backend-net
 
 docker run -d --name rabbitmq-mqtt --network backend-net -p 5672:5672 -p 15672:15672 -p 1883:1883 rabbitmq-mqtt
