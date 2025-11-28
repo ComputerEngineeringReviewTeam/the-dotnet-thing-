@@ -14,11 +14,41 @@ namespace Controllers
             _mongo = mongo;
         }
 
-        [HttpGet("measurement")]
-        public IActionResult Get()
+        // [HttpGet("measurement")]
+        // public IActionResult Get()
+        // {
+        //     var list = _mongo.GetAll();
+        //     return Ok(list);
+        // }
+        [HttpGet("measurement/json")]
+        public IActionResult GetJson([FromQuery] MeasurementQuery q)
         {
-            var list = _mongo.GetAll();
-            return Ok(list);
+            var data = _mongo.Search(q);
+            return Ok(data); // automatic JSON
+        }
+
+        [HttpGet("measurement/csv")]
+        public IActionResult GetCsv([FromQuery] MeasurementQuery q)
+        {
+            var data = _mongo.Search(q);
+
+            var lines = new List<string>
+            {
+                "Id,SensorId,SensorType,Value,Timestamp"
+            };
+
+            foreach (var m in data)
+            {
+                lines.Add($"{m.Id},{m.SensorId},{m.SensorType},{m.Value},{m.Timestamp:o}");
+            }
+
+            var csv = string.Join("\n", lines);
+
+            return File(
+                System.Text.Encoding.UTF8.GetBytes(csv),
+                "text/csv",
+                "measurements.csv"
+            );
         }
 
         [HttpGet("measurement/{id}")]
@@ -56,10 +86,11 @@ namespace Controllers
             return NoContent();
         }
 
-        [HttpGet("measurement/json")]
-        public IActionResult GetJson() => Ok(new[] { "Measurement Json" });
-
-        [HttpGet("measurement/csv")]
-        public IActionResult GetCsv() => Ok(new[] { "Measurement Csv" });
+        [HttpGet("measurement")]
+        public IActionResult Search([FromQuery] MeasurementQuery q)
+        {
+            var result = _mongo.Search(q);
+            return Ok(result);
+        }
     }
 }

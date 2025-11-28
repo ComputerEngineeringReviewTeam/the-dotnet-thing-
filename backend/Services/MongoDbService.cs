@@ -56,7 +56,41 @@ namespace Services
         public void Delete(string id)
             => _collection.DeleteOne(x => x.Id == id);
 
-        public void DeleteAll() 
+        public void DeleteAll()
             => _collection.DeleteMany(Builders<WaterMeasurement>.Filter.Empty);
+            
+        public List<WaterMeasurement> Search(MeasurementQuery q)
+        {
+            var builder = Builders<WaterMeasurement>.Filter;
+            var filter = builder.Empty;
+
+            if (!string.IsNullOrEmpty(q.SensorId))
+                filter &= builder.Eq(x => x.SensorId, q.SensorId);
+
+            if (q.SensorType != null)
+                filter &= builder.Eq(x => x.SensorType, q.SensorType);
+
+            if (q.MinValue != null)
+                filter &= builder.Gte(x => x.Value, q.MinValue);
+
+            if (q.MaxValue != null)
+                filter &= builder.Lte(x => x.Value, q.MaxValue);
+
+            if (q.From != null)
+                filter &= builder.Gte(x => x.Timestamp, q.From);
+
+            if (q.To != null)
+                filter &= builder.Lte(x => x.Timestamp, q.To);
+
+            var sort = q.SortBy switch
+            {
+                "value" => q.Desc ? Builders<WaterMeasurement>.Sort.Descending(x => x.Value)
+                                : Builders<WaterMeasurement>.Sort.Ascending(x => x.Value),
+                _ => q.Desc ? Builders<WaterMeasurement>.Sort.Descending(x => x.Timestamp)
+                            : Builders<WaterMeasurement>.Sort.Ascending(x => x.Timestamp)
+            };
+
+            return _collection.Find(filter).Sort(sort).ToList();
+        }
     }
 }
