@@ -1,8 +1,16 @@
+using Services;
+using Settings;
+
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection("RabbitMqSettings"));
+builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
+
 // Add services
-builder.Services.AddControllers(); 
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHostedService<MqttService>();
+builder.Services.AddSingleton<MongoDbService>();
 
 var app = builder.Build();
 
@@ -12,7 +20,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.MapControllers();
 
