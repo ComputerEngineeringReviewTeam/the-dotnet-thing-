@@ -16,4 +16,7 @@ COPY --from=build /app .
 
 EXPOSE 5253
 
+# Debug purposes
+RUN apt update && apt install -y netcat-openbsd
+
 ENTRYPOINT ["dotnet", "backend.dll"]

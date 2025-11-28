@@ -50,6 +50,7 @@ namespace Services
             {
                 var msg = Encoding.UTF8.GetString(e.ApplicationMessage.PayloadSegment);
                 logMessage($"Received: {msg}");
+                HandleIncomingMessage(msg);
                 return Task.CompletedTask;
             };
 
@@ -83,6 +84,33 @@ namespace Services
 
             while (!stoppingToken.IsCancellationRequested)
                 await Task.Delay(1000, stoppingToken);
+        }
+
+        private void HandleIncomingMessage(string message)
+        {
+            try
+            {
+                // Deserialize JSON message to SensorMessage
+                var sensorMsg = System.Text.Json.JsonSerializer.Deserialize<Models.SensorMessage>(message);
+                if (sensorMsg == null) return;
+
+                // Convert to WaterMeasurement
+                var measurement = new Models.WaterMeasurement
+                {
+                    SensorId = sensorMsg.SensorId,
+                    SensorType = Enum.Parse<Models.SensorType>(sensorMsg.SensorType),
+                    Value = sensorMsg.Value,
+                    Timestamp = sensorMsg.Timestamp
+                };
+
+                // Save to MongoDB
+                mognoDbService.Add(measurement);
+                logMessage($"Saved measurement from {measurement.SensorId}");
+            }
+            catch (Exception ex)
+            {
+                logMessage($"Failed to process message: {ex.Message}");
+            }
         }
     }
 }
