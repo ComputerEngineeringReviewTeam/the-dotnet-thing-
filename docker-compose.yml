@@ -3,7 +3,7 @@ services:
   rabbitmq-mqtt:
     build:
       context: ./rabbitMQ
-    container_name: rabbitmq-mqtt
+    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -48,6 +48,16 @@ services:
     container_name: frontend
     ports:
       - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+  devices:
+    build:
+      context: ./devices
+    container_name: devices
+    networks:
+      - backend-net
     depends_on:
       backend:
         condition: service_started

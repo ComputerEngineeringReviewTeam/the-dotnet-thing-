@@ -14,17 +14,21 @@ Unless stated otherwise, all commands are to be ran from the project's root dire
 
 **Starting the application:**
 
+The following command will run both the web application and the simulated devices.
+
 ```bash
 docker compose up -d
 ```
 
-**Stopping the application:**
+To stop all services run:
 
 ```bash
 docker compose down
 ```
 
 **Running containers manually:**
+
+To run the web application:
 
 ```bash
 docker build -t rabbitmq-mqtt rabbitMQ/
@@ -40,6 +44,13 @@ docker run -d  -p 8080:8080 --name backend --network backend-net backend
 docker run -d -p 80:80 --name frontend frontend
 ```
 
+To run the sensor simulation:
+
+```bash
+docker build -t devices devices/
+docker run -d --name devices --network backend-net devices
+```
+
 **Health check:**
 
 Simple test if the backend works can be done by searching http://localhost:8080/api/demo. It should display JSON message containing a `Hello World` string.
@@ -48,35 +59,6 @@ It is possible to see console output with `docker logs -f backend` and execute c
 
 Website shuld be available at http://localhost:80
 
-### Simulating sensors:
-
-There is a simple python script prepared, simulating sensors with random data.
-
-Unless stated otherwise, all commands are to be ran from the project's root directory.
-
-**Setup:**
-
-Install additional requirements with:
-
-```bash
-python3 -m venv .
-source .venv/bin/activate
-pip install -r devices/requirements.txt
-```
-
-**Simulating one sensor:**
-
-After running the web application, run the python script `main.py` in `devices/` folder. Backend application should log sent messages to the console.
-
-Arguments: `--type` (sensor type, choose from `Temperature`, `Oxygen`, `PH` and `Salinity`), `--id` (unique sensor ID), `--interval` (how often a data point is to be sent).
-
-**Simulating 16 sensors at once:**
-
-To run the above mentioned script multiple times at once use:
-
-```bash
-./devices/run_example.sh
-```
 
 ### Available API endpoints:  
 
