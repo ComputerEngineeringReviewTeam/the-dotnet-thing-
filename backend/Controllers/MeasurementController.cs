@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Services;
+using Microsoft.AspNetCore.Cors;
 
 namespace Controllers
 {
@@ -20,6 +21,8 @@ namespace Controllers
         //     var list = _mongo.GetAll();
         //     return Ok(list);
         // }
+
+        [EnableCors("permissive")]
         [HttpGet("measurement/json")]
         public IActionResult GetJson([FromQuery] MeasurementQuery q)
         {
@@ -27,6 +30,7 @@ namespace Controllers
             return Ok(data); // automatic JSON
         }
 
+        [EnableCors("permissive")]
         [HttpGet("measurement/csv")]
         public IActionResult GetCsv([FromQuery] MeasurementQuery q)
         {
@@ -51,6 +55,7 @@ namespace Controllers
             );
         }
 
+        [EnableCors("permissive")]
         [HttpGet("measurement/{id}")]
         public IActionResult GetOne(string id)
         {
@@ -58,6 +63,7 @@ namespace Controllers
             return item == null ? NotFound() : Ok(item);
         }
 
+        [EnableCors("permissive")]
         [HttpPost("measurement")]
         public IActionResult Add([FromBody] Models.WaterMeasurement m)
         {
@@ -65,6 +71,7 @@ namespace Controllers
             return Ok(m);
         }
 
+        [EnableCors("permissive")]
         [HttpPut("measurement/{id}")]
         public IActionResult Update(string id, [FromBody] Models.WaterMeasurement m)
         {
@@ -72,6 +79,7 @@ namespace Controllers
             return Ok(m);
         }
 
+        [EnableCors("permissive")]
         [HttpDelete("measurement/{id}")]
         public IActionResult Delete(string id)
         {
@@ -79,6 +87,7 @@ namespace Controllers
             return NoContent();
         }
 
+        [EnableCors("permissive")]
         [HttpDelete("measurement")]
         public IActionResult DeleteAll()
         {
@@ -86,6 +95,7 @@ namespace Controllers
             return NoContent();
         }
 
+        [EnableCors("permissive")]
         [HttpGet("measurement")]
         public IActionResult Search([FromQuery] MeasurementQuery q)
         {
