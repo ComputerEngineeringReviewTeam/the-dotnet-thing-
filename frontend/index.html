@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dolphin Aquarium Monitoring</title>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #4CAF50; color: white; cursor: pointer; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        #error { color: red; margin-top: 20px; }
+        .filters { margin-bottom: 20px; }
+        .filters div { margin-bottom: 10px; }
+        .summary-table th { background-color: #2196F3; }
+        .button {color:  #2196F3;}
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <h2>Atlantic Bottlenose Dolphin Aquarium Water Quality Monitoring System</h2>
+
+    <p v-if="error" id="error">{{ error }}</p>
+
+
+    <h3>Summary</h3>
+    <table v-if="averagePerSensor.length > 0" class="summary-table">
+        <thead>
+            <tr>
+                <th>Sensor ID</th>
+                <th>Average Value (for 100 last entries)</th>
+                <th>Last Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="s in averagePerSensor" :key="s.sensorId">
+                <td>{{ s.sensorId }}</td>
+                <td>{{ s.avgValue.toFixed(2) }}</td>
+                <td>{{ lastPerSensor(s.sensorId).toFixed(2) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <h3>Detailed data</h3>
+    <div class="filters">
+
+
+        <div>
+            <label>Sensor ID: </label>
+            <input v-model="filters.sensorId" placeholder="e.g. 1, 2, A12">
+        </div>
+
+        <div>
+            <label>Sensor Type: </label>
+            <select v-model="filters.sensorType">
+                <option value="">All</option>
+                <option>Temperature</option>
+                <option>PH</option>
+                <option>Salinity</option>
+                <option>Oxygen</option>
+            </select>
+        </div>
+
+        <div>
+            <label>Value Min: </label>
+            <input type="number" v-model.number="filters.valueMin">
+            <label style="margin-left: 10px;">Value Max: </label>
+            <input type="number" v-model.number="filters.valueMax">
+        </div>
+
+        <div>
+            <label>From Timestamp: </label>
+            <input type="datetime-local" v-model="filters.timeFrom">
+            <label style="margin-left: 10px;">To: </label>
+            <input type="datetime-local" v-model="filters.timeTo">
+        </div>
+    </div>
+
+    <div class="button" @click="download_json()">Get JSON report</div>
+    <div class="button" @click="download_csv()">Get CSV report</div>
+    <br>
+
+    <h4>As a graph</h4>
+    <canvas id="sensorChart" width="800" height="400"></canvas>
+
+    <h4>As a table</h4>
+
+    <table v-if="sortedMeasurements.length > 0">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th @click="setSort('sensorId')">Sensor ID <span>{{ sortIndicator('sensorId') }}</span></th>
+                <th @click="setSort('sensorType')">Sensor Type <span>{{ sortIndicator('sensorType') }}</span></th>
+                <th @click="setSort('value')">Value <span>{{ sortIndicator('value') }}</span></th>
+                <th @click="setSort('timestamp')">Timestamp <span>{{ sortIndicator('timestamp') }}</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr v-for="m in sortedMeasurements" :key="m.id">
+                <td>{{ m.id }}</td>
+                <td>{{ m.sensorId }}</td>
+                <td>{{ m.sensorType }}</td>
+                <td>{{ m.value }}</td>
+                <td>{{ m.timestamp }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+const { createApp } = Vue;
+
+createApp({
+    data() {
+        return {
+            measurements: [],
+            error: "",
+            sortKey: "id",
+            sortAsc: true,
+            sensorChart: null,
+            filters: {
+                sensorId: "",
+                sensorType: "",
+                valueMin: "",
+                valueMax: "",
+                timeFrom: "",
+                timeTo: ""
+            }
+        };
+    },
+
+    watch: {
+        filteredMeasurements(newData) {
+            if (newData.length > 0) this.renderChart();
+            else {
+
+                if (this.sensorChart) {
+                    this.sensorChart.destroy();
+                    this.sensorChart = null;
+                }
+            }
+        }
+    },
+
+    computed: {
+        filteredMeasurements() {
+            return this.measurements.filter(m => {
+                if (this.filters.sensorId &&
+                    !String(m.sensorId).toLowerCase().includes(this.filters.sensorId.toLowerCase()))
+                    return false;
+
+                if (this.filters.sensorType && m.sensorType !== this.filters.sensorType)
+                    return false;
+
+                if (this.filters.valueMin !== "" && m.value < this.filters.valueMin)
+                    return false;
+
+                if (this.filters.valueMax !== "" && m.value > this.filters.valueMax)
+                    return false;
+
+                const ts = new Date(m.timestamp);
+                const tt = new Date(this.filters.timeTo+'Z')
+                const tf = new Date(this.filters.timeFrom+'Z')
+                if (this.filters.timeFrom && ts < tf)
+                    return false;
+
+                if (this.filters.timeTo && ts > tt)
+                    return false;
+
+                return true;
+            });
+        },
+
+
+        chartData() {
+            const sensors = {};
+            this.filteredMeasurements.forEach(m => {
+                if (!sensors[m.sensorId]) sensors[m.sensorId] = [];
+                sensors[m.sensorId].push({ x: Number(Date.parse(m.timestamp)), y: m.value });
+            });
+
+            const datasets = Object.keys(sensors).map((id, index) => ({
+                label: `Sensor ${id}`,
+                data: sensors[id].sort((a, b) => {
+                    if (a.x < b.x) return -1;
+                    if (a.x > b.x) return 1;
+                    return 0;
+                }),
+                borderColor: `hsl(${index * 60 % 360}, 70%, 50%)`,
+                backgroundColor: 'transparent',
+                tension: 0.2
+            }));
+
+            return { datasets };
+        },
+
+        sortedMeasurements() {
+            return [...this.filteredMeasurements].sort((a, b) => {
+                let x = a[this.sortKey];
+                let y = b[this.sortKey];
+
+                if (this.sortKey === 'timestamp') {
+                    x = Date.parse(x);
+                    y = Date.parse(y);
+                    if (x < y) return this.sortAsc ? -1 : 1;
+                    if (x > y) return this.sortAsc ? 1 : -1;
+                    return 0;
+                }
+
+                const numX = parseFloat(x);
+                const numY = parseFloat(y);
+                if (!isNaN(numX) && !isNaN(numY)) {
+                    return this.sortAsc ? numX - numY : numY - numX;
+                }
+
+                x = String(x).toLowerCase();
+                y = String(y).toLowerCase();
+                if (x < y) return this.sortAsc ? -1 : 1;
+                if (x > y) return this.sortAsc ? 1 : -1;
+                return 0;
+            });
+        },
+
+        json_export() {
+            return JSON.stringify(this.sortedMeasurements);
+        },
+
+        csv_export() {
+            let csv = '';
+            const headers = Object.keys(this.sortedMeasurements[0] || {});
+            if (headers.length) {
+                csv += headers.join(',') + '\n';
+                this.sortedMeasurements.forEach(obj => {
+                    const values = headers.map(header => obj[header]);
+                    csv += values.join(',') + '\n';
+                });
+            }
+            return csv;
+        },
+
+        averagePerSensor() {
+            // First, sort measurements by timestamp descending
+            const sortedByTime = [...this.measurements].sort((x, y) => {
+                x = new Date(x.timestamp);
+                y = new Date(y.timestamp);
+                if (x < y) return 1;
+                if (x > y) return -1;
+                return 0;
+            });
+
+            // Take only the first 100 entries
+            const recent100 = sortedByTime.slice(0, 100);
+
+            const sums = {};
+            const counts = {};
+
+            recent100.forEach(m => {
+                if (!sums[m.sensorId]) {
+                    sums[m.sensorId] = 0;
+                    counts[m.sensorId] = 0;
+                }
+                sums[m.sensorId] += m.value;
+                counts[m.sensorId] += 1;
+            });
+
+            return Object.keys(sums).map(sensorId => ({
+                sensorId,
+                avgValue: sums[sensorId] / counts[sensorId]
+            }));
+        }
+
+
+    },
+
+    methods: {
+
+       renderChart() {
+            const canvas = document.getElementById('sensorChart');
+            if (!canvas) return; // canvas not yet in DOM
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return; // context not available
+
+            // Destroy previous chart if exists
+            if (this.sensorChart) {
+                this.sensorChart.destroy();
+                this.sensorChart = null;
+            }
+
+            const datasets = this.chartData.datasets || [];
+            if (datasets.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            this.sensorChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    animation: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'minute', tooltipFormat: 'yyyy-MM-dd HH:mm:ss' },
+                            title: { display: true, text: 'Timestamp' }
+                        },
+                        y: { title: { display: true, text: 'Value' } }
+                    }
+                }
+            });
+        },
+
+        lastPerSensor(id) {
+            // First, sort measurements by timestamp descending
+            const sortedByTime = [...this.measurements].sort((x, y) => {
+                x = new Date(x.timestamp);
+                y = new Date(y.timestamp);
+                if (x < y) return 1;
+                if (x > y) return -1;
+                return 0;
+            });
+
+            // Take only the first 100 entries
+
+
+            for (m of sortedByTime) {
+                if(id === m.sensorId){
+                    return m.value
+                }
+            };
+            return 0;
+        },
+
+        download_json() {
+            const blob = new Blob([this.json_export], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "report.json";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        },
+
+        download_csv() {
+            const blob = new Blob([this.csv_export], { type: 'text/plain' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "report.csv";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        },
+
+        setSort(key) {
+            if (this.sortKey === key) {
+                this.sortAsc = !this.sortAsc;
+            } else {
+                this.sortKey = key;
+                this.sortAsc = true;
+            }
+        },
+
+        sortIndicator(key) {
+            if (this.sortKey !== key) return "";
+            return this.sortAsc ? "▲" : "▼";
+        },
+
+        async loadData() {
+            try {
+                const res = await fetch("http://localhost:8080/api/measurement");
+                if (!res.ok) throw new Error("Server returned " + res.status);
+
+                this.measurements = await res.json();
+
+                const types = ["Temperature", "PH", "Salinity", "Oxygen"];
+                for (const m of this.measurements) {
+                    const idx = Number(m.sensorType);
+                    if (idx >= 0 && idx < types.length) {
+                        m.sensorType = types[idx];
+                    }
+                }
+                this.error = "";
+            } catch (err) {
+                this.error = "Error loading data: " + err.message;
+            }
+        }
+    },
+
+    mounted() {
+        this.loadData();
+        setInterval(this.loadData, 5000);
+    }
+}).mount("#app");
+</script>
+
+</body>
+</html>

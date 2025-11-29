@@ -1,0 +1,67 @@
+
+services:
+  rabbitmq-mqtt:
+    build:
+      context: ./rabbitMQ
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "1883:1883"
+    networks:
+      - backend-net
+    healthcheck:
+        test: ["CMD", "rabbitmqctl", "status"]
+        interval: 5s
+        timeout: 2s
+        start_period: 4s
+        retries: 5
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - "27017:27017"
+    networks:
+      - backend-net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    ports:
+      - "8080:8080"
+    networks:
+      - backend-net
+    depends_on:
+      rabbitmq-mqtt:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+
+  devices:
+    build:
+      context: ./devices
+    container_name: devices
+    networks:
+      - backend-net
+    depends_on:
+      backend:
+        condition: service_started
+
+networks:
+  backend-net:
+    driver: bridge

@@ -12,7 +12,7 @@ parser.add_argument("--id", type=int, required=True, help="Please specify the se
 parser.add_argument("--interval", type=float, required=True, help="Interval between messages in seconds")
 args = parser.parse_args()
 
-BROKER = "localhost"
+BROKER = "rabbitmq-mqtt"
 PORT = 1883
 TOPIC = "sensor_data"
 
