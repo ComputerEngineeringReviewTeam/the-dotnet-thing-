@@ -29,11 +29,11 @@ namespace Services
 		{
 			var web3 = new Web3("http://geth-rpc:8545");
 
-//			var unlockResult = await web3.Personal.UnlockAccount.SendRequestAsync(senderAddress, "12", 60);
-//
-//			if (!unlockResult) {
-//				throw new Exception("Account unlocking failed");
-//			}
+			var unlockResult = await web3.Personal.UnlockAccount.SendRequestAsync(senderAddress, "12", 60);
+
+			if (!unlockResult) {
+				throw new Exception("Account unlocking failed");
+			}
 
 			var abi = "[{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"}]";
 
