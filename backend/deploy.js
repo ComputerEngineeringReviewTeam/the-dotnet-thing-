@@ -42,7 +42,7 @@ const bytecode = fs.readFileSync("build/_app_MyToken_sol_MyToken.bin").toString(
 (async () => {
 	while (true) {
 		try {
-			await web3.eth.personal.unlockAccount(account, password);
+			await web3.eth.personal.unlockAccount(account, password, 60000);
 
 			const contract = new web3.eth.Contract(abi);
 			const deploy = contract.deploy({
