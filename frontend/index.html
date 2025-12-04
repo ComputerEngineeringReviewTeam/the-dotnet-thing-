@@ -43,7 +43,7 @@
                 <td>{{ s.sensorId }}</td>
                 <td>{{ s.avgValue.toFixed(2) }}</td>
                 <td>{{ lastPerSensor(s.sensorId).toFixed(2) }}</td>
-                <td>{{ balance(s.sensorId) }}</td>
+                <td>{{ balance[s.sensorId] }}</td>
             </tr>
         </tbody>
     </table>
@@ -126,7 +126,7 @@ createApp({
             sortKey: "id",
             sortAsc: true,
             sensorChart: null,
-            balance: null,
+            balance: {},
             filters: {
                 sensorId: "",
                 sensorType: "",
@@ -390,13 +390,14 @@ createApp({
                 }
                 this.error = "";
 
-                var sensors = new Set(this.measurements.sensorId);
-                this.balance = new Map();
-                for (const sensorId of sensors) {
-                    const response = await fetch(`http://localhost:8080/api/balances?sensorId=${sensorId}`);
+                var sensors = new Set(this.measurements.map(m => m.sensorId));
+                this.balance = {}
+
+                for (const id of sensors) {
+                    const response = await fetch(`http://localhost:8080/api/balance?id=${id}`);
                     if (!response.ok) continue;
                     const data = await response.json();
-                    this.balance.set(sensorId, data.value ?? data);
+                    this.balance[id] = (data.value ?? data);
                 }
 
             } catch (err) {
