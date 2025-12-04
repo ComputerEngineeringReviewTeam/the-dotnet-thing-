@@ -40,26 +40,36 @@ const abi = JSON.parse(fs.readFileSync("build/_app_MyToken_sol_MyToken.abi"));
 const bytecode = fs.readFileSync("build/_app_MyToken_sol_MyToken.bin").toString();
 
 (async () => {
-	await web3.eth.personal.unlockAccount(account, password, 60);
+	while (true) {
+		try {
+			await web3.eth.personal.unlockAccount(account, password);
 
-	const contract = new web3.eth.Contract(abi);
-	const deploy = contract.deploy({
-		data: "0x" + bytecode,
-		arguments: [web3.utils.toWei("1000", "ether")]
-	});
+			const contract = new web3.eth.Contract(abi);
+			const deploy = contract.deploy({
+				data: "0x" + bytecode,
+				arguments: [web3.utils.toWei("1000", "ether")]
+			});
 
-	const gas = await deploy.estimateGas({ from: account });
-	const gasPrice = await web3.eth.getGasPrice(); // legacy gas price
+			const gas = await deploy.estimateGas({ from: account });
+			const gasPrice = await web3.eth.getGasPrice(); // legacy gas price
 
-	const receipt = await deploy.send({
-		from: account,
-		gas,
-		gasPrice
-	});
+			console.log("gasPrice: " + gasPrice + ", gas: " + gas);
 
-	fs.writeFile('./contract.txt', receipt.options.address, err => {
-		if (err) { console.error(err); }
-	});
+			const receipt = await deploy.send({
+				from: account,
+				gas,
+				gasPrice
+			});
 
-	console.log("Contract deployed at:", receipt.options.address);
+			fs.writeFile('./contract.txt', receipt.options.address, err => {
+				if (err) { console.error(err); }
+			});
+
+			console.log("Contract deployed at:", receipt.options.address);
+			break; // exit loop on success
+		} catch (e) {
+			console.error("Deployment failed, retrying...", e);
+			await new Promise(r => setTimeout(r, 2000)); // wait 2s before retry
+		}
+	}
 })();

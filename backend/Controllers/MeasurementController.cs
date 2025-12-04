@@ -2,6 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using Services;
 using Microsoft.AspNetCore.Cors;
 
+using System;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using MQTTnet;
+using MQTTnet.Client;
+using Settings;
+using System.IO;
+using System.Numerics;
+using Nethereum.Web3;
+using Nethereum.Hex.HexTypes;
+
 namespace Controllers
 {
     [ApiController]
@@ -21,6 +35,40 @@ namespace Controllers
         //     var list = _mongo.GetAll();
         //     return Ok(list);
         // }
+
+		// ! crypto ! //
+        public static async Task<decimal> GetTokenBalance(
+			string accountAddress,
+			string tokenContractAddress
+		)
+		{
+			var web3 = new Web3("http://geth-rpc:8545");
+
+			var abi = "[{\"constant\":true,\"inputs\":[{\"name\":\"_owner\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"balance\",\"type\":\"uint256\"}],\"type\":\"function\"}]";
+
+			var contract = web3.Eth.GetContract(abi, tokenContractAddress);
+			var balanceFunction = contract.GetFunction("balanceOf");
+
+			var balanceWei = await balanceFunction.CallAsync<BigInteger>(accountAddress);
+			var balanceTokens = Web3.Convert.FromWei(balanceWei);
+
+			return balanceTokens;
+		}
+
+        [EnableCors("permissive")]
+        [HttpGet("balance")]
+        public async Task<IActionResult> GetBalance(string id)
+        {
+
+        	if (!MqttService.map.ContainsKey(id)) {
+        		return Ok();
+        	}
+
+        	var acc = MqttService.map[id];
+
+            var data = await GetTokenBalance(acc, System.IO.File.ReadAllLines("./contract.txt")[0]);
+            return Ok(data);
+        }
 
         [EnableCors("permissive")]
         [HttpGet("measurement/json")]

@@ -1,5 +1,5 @@
 
-sleep 5
+sleep 10
 node deploy.js
 
 echo "Contract Address: "

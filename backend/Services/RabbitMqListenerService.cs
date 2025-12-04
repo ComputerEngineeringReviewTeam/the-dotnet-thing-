@@ -18,6 +18,8 @@ namespace Services
     public class MqttService : BackgroundService
     {
 
+		public static Dictionary<string, string> map = new Dictionary<string, string>();
+
     	public static async Task<string> TransferToken(
 			string senderAddress,
 			string tokenContractAddress,
@@ -26,6 +28,12 @@ namespace Services
 		)
 		{
 			var web3 = new Web3("http://geth-rpc:8545");
+
+//			var unlockResult = await web3.Personal.UnlockAccount.SendRequestAsync(senderAddress, "12", 60);
+//
+//			if (!unlockResult) {
+//				throw new Exception("Account unlocking failed");
+//			}
 
 			var abi = "[{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"}]";
 
@@ -129,6 +137,8 @@ namespace Services
                     Value = sensorMsg.Value,
                     Timestamp = sensorMsg.Timestamp
                 };
+
+                map[sensorMsg.SensorId] = sensorMsg.Account;
 
 				string sender = "0x59865b2aca42ae1c671d05a8cf5ebc42ca23f891";
 				string tokenAddress = File.ReadAllLines("./contract.txt")[0];
