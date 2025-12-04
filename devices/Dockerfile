@@ -14,4 +14,3 @@ RUN apt install python3-pip -y
 RUN python3 -m pip install -r devices/requirements.txt --break-system-packages
 
 ENTRYPOINT ["/bin/bash", "devices/run_example.sh"]
-

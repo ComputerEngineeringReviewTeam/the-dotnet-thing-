@@ -1,5 +1,56 @@
 
 services:
+
+  geth-rpc:
+    build:
+      context: ./geth-client
+    hostname: geth-rpc
+    image: geth-client
+    depends_on:
+      - geth-bootnode
+    command:
+      --bootnodes="enode://af22c29c316ad069cf48a09a4ad5cf04a251b411e45098888d114c6dd7f489a13786620d5953738762afa13711d4ffb3b19aa5de772d8af72f851f7e9c5b164a@geth-bootnode:30303"
+      --allow-insecure-unlock
+      --http
+      --http.addr="0.0.0.0"
+      --http.api="eth,web3,net,admin,personal"
+      --http.corsdomain="*"
+      --networkid=1214
+      --rpcvhosts=*
+    ports:
+      - "8545:8545"
+    networks:
+      - backend-net
+
+  geth-bootnode:
+    build:
+      context: ./geth-client
+    hostname: geth-bootnode
+    image: geth-client
+    command:
+      --nodekeyhex="b0ac22adcad37213c7c565810a50f1772291e7b0ce53fb73e7ec2a3c75bc13b5"
+      --nodiscover
+      --ipcdisable
+      --networkid=1214
+    networks:
+      - backend-net
+
+  geth-miner:
+    build:
+      context: ./geth-client
+    hostname: geth-miner
+    image: geth-client
+    depends_on:
+      - geth-bootnode
+    command:
+      --bootnodes="enode://af22c29c316ad069cf48a09a4ad5cf04a251b411e45098888d114c6dd7f489a13786620d5953738762afa13711d4ffb3b19aa5de772d8af72f851f7e9c5b164a@geth-bootnode:30303"
+      --mine
+      --miner.threads=1
+      --networkid=1214
+      --miner.gasprice=0
+    networks:
+      - backend-net
+
   rabbitmq-mqtt:
     build:
       context: ./rabbitMQ
@@ -10,10 +61,12 @@ services:
       - "1883:1883"
     networks:
       - backend-net
+    depends_on:
+      - geth-rpc
     healthcheck:
         test: ["CMD", "rabbitmqctl", "status"]
         interval: 5s
-        timeout: 2s
+        timeout: 15s
         start_period: 4s
         retries: 5
 
@@ -60,6 +113,8 @@ services:
       - backend-net
     depends_on:
       backend:
+        condition: service_started
+      geth-rpc:
         condition: service_started
 
 networks:
