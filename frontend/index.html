@@ -391,7 +391,7 @@ createApp({
                 this.error = "";
 
                 var sensors = new Set(this.measurements.sensorId);
-                this.balance = Map();
+                this.balance = new Map();
                 for (const sensorId of sensors) {
                     const response = await fetch(`http://localhost:8080/api/balances?sensorId=${sensorId}`);
                     if (!response.ok) continue;
