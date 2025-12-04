@@ -140,7 +140,7 @@ namespace Services
 
                 map[sensorMsg.SensorId] = sensorMsg.Account;
 
-				string sender = "0x59865b2aca42ae1c671d05a8cf5ebc42ca23f891";
+				string sender = File.ReadAllLines("./miner_account.txt")[0];
 				string tokenAddress = File.ReadAllLines("./contract.txt")[0];
 				string recipient = sensorMsg.Account;
 				decimal amount = 1m;
