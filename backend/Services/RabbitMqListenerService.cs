@@ -7,13 +7,48 @@ using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client;
 using Settings;
-
+using System.IO;
+using System.Numerics;
+using Nethereum.Web3;
+using Nethereum.Hex.HexTypes;
 
 namespace Services
 {
 
     public class MqttService : BackgroundService
     {
+
+		public static Dictionary<string, string> map = new Dictionary<string, string>();
+
+    	public static async Task<string> TransferToken(
+			string senderAddress,
+			string tokenContractAddress,
+			string recipientAddress,
+			decimal amountTokens
+		)
+		{
+			var web3 = new Web3("http://geth-rpc:8545");
+
+			var unlockResult = await web3.Personal.UnlockAccount.SendRequestAsync(senderAddress, "12", 60);
+
+			if (!unlockResult) {
+				throw new Exception("Account unlocking failed");
+			}
+
+			var abi = "[{\"constant\":false,\"inputs\":[{\"name\":\"_to\",\"type\":\"address\"},{\"name\":\"_value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"\",\"type\":\"bool\"}],\"type\":\"function\"}]";
+
+			var contract = web3.Eth.GetContract(abi, tokenContractAddress);
+			var transferFunction = contract.GetFunction("transfer");
+
+			var amountWei = Web3.Convert.ToWei(amountTokens);
+
+			var gas = await transferFunction.EstimateGasAsync(senderAddress, null, null, recipientAddress, amountWei);
+
+			var txHash = await transferFunction.SendTransactionAsync(senderAddress, gas, null, recipientAddress, amountWei);
+
+			return txHash;
+		}
+
         private readonly RabbitMqSettings _rabbitSettings;
         private IMqttClient? _client;
         private MqttClientOptions? _options;
@@ -86,7 +121,7 @@ namespace Services
                 await Task.Delay(1000, stoppingToken);
         }
 
-        private void HandleIncomingMessage(string message)
+        private async Task HandleIncomingMessage(string message)
         {
             try
             {
@@ -102,6 +137,16 @@ namespace Services
                     Value = sensorMsg.Value,
                     Timestamp = sensorMsg.Timestamp
                 };
+
+                map[sensorMsg.SensorId] = sensorMsg.Account;
+
+				string sender = File.ReadAllLines("./miner_account.txt")[0];
+				string tokenAddress = File.ReadAllLines("./contract.txt")[0];
+				string recipient = sensorMsg.Account;
+				decimal amount = 1m;
+
+				string txHash = await TransferToken(sender, tokenAddress, recipient, amount);
+				Console.WriteLine("Transaction sent. Hash: " + txHash);
 
                 // Save to MongoDB
                 mognoDbService.Add(measurement);

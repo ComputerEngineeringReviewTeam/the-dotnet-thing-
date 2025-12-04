@@ -38,5 +38,8 @@ namespace Models
 
         [JsonPropertyName("timestamp")]
         public DateTime Timestamp { get; set; }
+
+        [JsonPropertyName("account")]
+        public string Account { get; set; }
     }
 }
